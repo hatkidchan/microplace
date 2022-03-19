@@ -45,7 +45,7 @@ int main(void)
       server.world->info->chunk_height);
 
   mg_mgr_init(&server.manager);
-  mg_http_listen(&server.manager, "ws://0.0.0.0:8092",
+  mg_http_listen(&server.manager, "ws://0.0.0.0:8092/ws",
       handle_mongoose, &server);
   while (!server.should_stop)
     mg_mgr_poll(&server.manager, 1000);

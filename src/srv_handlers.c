@@ -67,6 +67,8 @@ void __sh_remove_client(server_t *server, client_t *client)
 void handle_mongoose(struct mg_connection *c, int et, void *edt, void *fdt)
 {
   server_t *server = (server_t *)fdt;
+  if (et != MG_EV_POLL)
+    printf("MG_EVENT: %d (%s)\n", et, mg_ev_str(et));
   switch (et)
   {
     case MG_EV_HTTP_MSG:

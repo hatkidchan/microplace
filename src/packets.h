@@ -26,22 +26,22 @@ typedef struct {
     uint8_t val;
     uint16_t x;
     uint16_t y;
-} pk_c_set_t;
+} __attribute__((packed)) pk_c_set_t;
 
 typedef struct {
     char text[256];
     uint8_t _null;
-} pk_c_msg_t;
+} __attribute__((packed)) pk_c_msg_t;
 
 typedef struct {
     uint8_t cx;
     uint8_t cy;
-} pk_c_crq_t;
+} __attribute__((packed)) pk_c_crq_t;
 
 typedef struct {
     uint32_t length;
     uint8_t* data;
-} pk_c_sys_t;
+} __attribute__((packed)) pk_c_sys_t;
 
 typedef struct {
     uint8_t cw;
@@ -50,7 +50,7 @@ typedef struct {
     uint8_t ny;
     char name[128];
     char description[256];
-} pk_s_inf_t;
+} __attribute__((packed)) pk_s_inf_t;
 
 typedef struct {
     enum pk_s_cdt_type_en {
@@ -59,7 +59,7 @@ typedef struct {
     uint8_t x;
     uint8_t y;
     void* data;
-} pk_s_cdt_t;
+} __attribute__((packed)) pk_s_cdt_t;
 
 typedef struct {
     uint8_t _rsv[3];
@@ -68,14 +68,14 @@ typedef struct {
     uint64_t n_changes;
     uint64_t n_messages;
     uint64_t n_connections;
-} pk_s_cnt_t;
+} __attribute__((packed)) pk_s_cnt_t;
 
 typedef struct {
     uint16_t _rsv;
     uint8_t val;
     uint16_t x;
     uint16_t y;
-} pk_s_pix_t;
+} __attribute__((packed)) pk_s_pix_t;
 
 typedef struct {
     uint8_t r;
@@ -88,11 +88,11 @@ typedef struct {
         PK_MSG_LOCALIZED = 0x02
     } type;
     char data[65536];
-} pk_s_msg_t;
+} __attribute__((packed)) pk_s_msg_t;
 
 typedef struct {
     uint32_t length;
     uint8_t* data;
-} pk_s_sys_t;
+} __attribute__((packed)) pk_s_sys_t;
 
 #endif
