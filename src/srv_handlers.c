@@ -59,7 +59,6 @@ void __sh_remove_client(server_t *server, client_t *client)
 
   mg_ws_send(client->mgconn, "", 0, WEBSOCKET_OP_CLOSE);
   printf("DISCONNECT %s\n", cur->address);
-  free(cur->address);
   free(cur);
   server->n_clients--;
 }
@@ -109,6 +108,28 @@ void ws_on_open(server_t *srv, struct mg_connection *conn)
   client->next = srv->clients_head;
   srv->clients_head = client;
   srv->n_clients++;
+  
+  send_s_info(client);
+  
+  char tmp[256] = { 0 };
+  snprintf(tmp, 256, "-!-=*=*=*=*=-!-");
+  send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
+  snprintf(tmp, 256, "Welcome to the %s server!", srv->world->info->name);
+  send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
+  snprintf(tmp, 256, "Online: %d", srv->n_clients);
+  send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
+  snprintf(tmp, 256, "NOTE: at this time, world is NOT protected");
+  send_s_message(client, (uint8_t[3]){ 255, 0, 0 }, tmp);
+  snprintf(tmp, 256, "Total world changes: %zd", srv->world->info->n_changes);
+  send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
+  snprintf(tmp, 256, "-!-=*=*=*=*=-!-");
+  send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
+  client->can_write = true;
+  
+  srv->world->info->n_connections++;
+  snprintf(tmp, 256, " * %s joined", client->address);
+  send_s_bcast_msg(srv->clients_head, (uint8_t[3]){ 77, 255, 77 }, tmp);
+  send_s_bcast_cnt(srv->clients_head);
 }
 
 void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
@@ -137,7 +158,7 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
         }
         
         uint64_t now = now_ms();
-        if (now - cli->last_placed_pixel_ts < UP_COOLDOWN_MS)
+        if (now - cli->last_placed_pixel_ts <= UP_COOLDOWN_MS)
         {
           send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
               "WOAH WOAH SLOW DOWN BITCH COOLDOWN IS A THING YNOW THAT RIGHT?");
@@ -150,6 +171,8 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
         };
         size_t sz = make_pk_s_pix(cli, out_pkt, buf, 1 + sizeof(pk_s_pix_t));
         send_s_bcast(srv->clients_head, buf, sz);
+        cli->last_placed_pixel_ts = now;
+        srv->world->info->n_changes++;
       }
       break;
       
@@ -215,7 +238,10 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
 
 void ws_on_close(server_t *srv, struct mg_connection *conn)
 {
-  (void)srv;
-  (void)conn;
+  client_t *client = __sh_find_client(srv, conn->id);
+  if (client != NULL)
+  {
+    __sh_remove_client(srv, client);
+  }
 }
 

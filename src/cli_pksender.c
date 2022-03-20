@@ -2,6 +2,9 @@
 #include "utils.h"
 #include <assert.h>
 
+#ifdef PLATFORM_WEB
+#error "lol nah"
+#endif
 
 size_t make_pk_c_set(pk_c_set_t pkt, uint8_t *dst, size_t lim)
 {

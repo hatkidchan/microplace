@@ -29,5 +29,7 @@ void send_s_message(client_t *c, uint8_t rgb[3], const char *message);
 void send_s_kick(client_t *c, const char *reason);
 
 void send_s_bcast(client_t *head, void *pkt, size_t length);
+void send_s_bcast_msg(client_t *head, uint8_t rgb[3], const char *message);
+void send_s_bcast_cnt(client_t *head);
 
 #endif

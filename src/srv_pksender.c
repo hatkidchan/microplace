@@ -13,15 +13,15 @@ size_t make_pk_s_inf(client_t *c, pk_s_inf_t pkt, uint8_t *dst, size_t lim)
 
 size_t make_pk_s_cdt(client_t *c, pk_s_cdt_t pkt, uint8_t *dst, size_t lim)
 {
-  assert(lim >= (1 + MAX_SYS_PKT_LENGTH + sizeof(pk_s_cdt_t) - sizeof(void*)));
+  assert(lim >= (1 + MAX_CDT_PKT_LENGTH + sizeof(pk_s_cdt_t) - sizeof(void*)));
   dst[0] = PK_S_CDT;
   switch (pkt.type)
   {
     case PK_CDT_UNCOMPRESSED:
       {
-        size_t sz = c->world->width * c->world->height;
+        size_t sz = c->world->info->chunk_width * c->world->info->chunk_height;
         memcpy(&dst[1], &pkt, sizeof(pk_s_cdt_t) - sizeof(void *));
-        memcpy(&dst[1 + sizeof(pk_s_cdt_t) - sizeof(void *)], pkt.data, sz);
+        memcpy(&dst[4], pkt.data, sz);
         return 1 + sizeof(pk_s_cdt_t) - sizeof(void *) + sz;
       }
       break;
@@ -67,7 +67,7 @@ size_t make_pk_s_msg(client_t *c, pk_s_msg_t pkt, uint8_t *dst, size_t lim)
       {
         size_t len = strnlen(pkt.data, 256);
         strncpy((char *)&dst[sz], pkt.data, len);
-        sz += len;
+        sz += len + 1;
       }
       break;
     case PK_MSG_COLOR:
@@ -98,7 +98,7 @@ void send_pk_s_inf(client_t *c, pk_s_inf_t pkt)
 
 void send_pk_s_cdt(client_t *c, pk_s_cdt_t pkt)
 {
-  uint8_t buf[1 + sizeof(pk_s_cdt_t) - sizeof(void *) + MAX_SYS_PKT_LENGTH];
+  uint8_t buf[1 + sizeof(pk_s_cdt_t) - sizeof(void *) + MAX_CDT_PKT_LENGTH];
   size_t sz = make_pk_s_cdt(c, pkt, buf, sizeof(buf));
   mg_ws_send(c->mgconn, (const char *)buf, sz, WEBSOCKET_OP_BINARY);
 }
@@ -138,6 +138,7 @@ void send_s_message(client_t *c, uint8_t rgb[3], const char *message)
     .r = rgb[0], .g = rgb[1], .b = rgb[2],
     .type = PK_MSG_PLAIN
   };
+  memset(msg.data, 0, sizeof(msg.data));
   strcpy(msg.data, message);
   send_pk_s_msg(c, msg);
 }
@@ -151,12 +152,15 @@ void send_s_kick(client_t *c, const char *reason)
   };
   strcpy(msg.data, reason);
   send_pk_s_msg(c, msg);
+  c->mgconn->is_closing = true;
 }
 
 void send_s_chunk(client_t *c, uint8_t cx, uint8_t cy)
 {
+  uint8_t buf_chunkdata[65536] = { 0 };
   pk_s_cdt_t pkt = { .type = PK_CDT_UNCOMPRESSED, .x = cx, .y = cy };
-  world_crop_chunk(c->world, cx, cy, pkt.data);
+  world_crop_chunk(c->world, cx, cy, buf_chunkdata);
+  pkt.data = buf_chunkdata;
   send_pk_s_cdt(c, pkt);
 }
 
@@ -195,3 +199,30 @@ void send_s_bcast(client_t *head, void *pkt, size_t length)
   }
 }
 
+void send_s_bcast_msg(client_t *head, uint8_t rgb[3], const char *message)
+{
+  pk_s_msg_t msg = {
+    .timestamp = now_ms(),
+    .r = rgb[0], .g = rgb[1], .b = rgb[2],
+    .type = PK_MSG_PLAIN
+  };
+  memset(msg.data, 0, sizeof(msg.data));
+  strcpy(msg.data, message);
+  uint8_t packet[1 + sizeof(pk_s_msg_t)] = { 0 };
+  size_t sz = make_pk_s_msg(head, msg, packet, 1 + sizeof(pk_s_msg_t));
+  send_s_bcast(head, packet, sz);
+}
+
+void send_s_bcast_cnt(client_t *head)
+{
+  pk_s_cnt_t pkt = {
+    .n_changes = head->world->info->n_changes,
+    .n_connections = head->world->info->n_connections,
+    .n_messages = head->world->info->n_messages,
+    .online = head->server->n_clients,
+    .timestamp = now_ms()
+  };
+  uint8_t packet[1 + sizeof(pk_s_cnt_t)] = { 0 };
+  size_t sz = make_pk_s_cnt(head, pkt, packet, 1 + sizeof(pk_s_cnt_t));
+  send_s_bcast(head, packet, sz);
+}

@@ -7,7 +7,8 @@
 
 uint8_t worldgen(uint16_t x, uint16_t y)
 {
-  return (x ^ y ^ (x >> (y & 3)) ^ (y << (x & 3))) & 0xff;
+//  return (x ^ y ^ (x >> (y & 3)) ^ (y << (x & 3))) & 0xff;
+  return (x + y) & 0xff;
 }
 
 int main(void)
@@ -21,7 +22,7 @@ int main(void)
   if (!server.world->ready)
   {
     worldinfo_t opts = {
-      .chunk_width = 64, .chunk_height = 64,
+      .chunk_width = 128, .chunk_height = 128,
       .chunks_x = 8, .chunks_y = 8
     };
     strncpy(opts.name, "test world", 128);

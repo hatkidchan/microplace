@@ -1,5 +1,5 @@
 #include "utils.h"
-#include <sys/time.h>
+#include <time.h>
 
 #ifdef __U_CUSTOM_STRNLEN
 // http://stackoverflow.com/questions/21536064/ddg#21536247

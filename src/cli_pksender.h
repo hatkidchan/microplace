@@ -2,6 +2,10 @@
 #define _C_PKSENDER_H_
 
 #include "packets.h"
+#ifdef _WIN32
+#define _WINSOCK2API_
+#define _WS2TCPIP_H_
+#endif
 #include "mongoose.h"
 
 size_t make_pk_c_set(pk_c_set_t pkt, uint8_t *dst, size_t lim);

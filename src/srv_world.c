@@ -7,6 +7,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <stdio.h>
+
 world_t *world_open(const char *fpath)
 {
   int fd = open(fpath, O_RDWR | O_CREAT, 0664);
@@ -104,15 +106,17 @@ bool world_crop_chunk(world_t *world, int cx, int cy, uint8_t *dst)
       || cx >= world->info->chunks_x
       || cy >= world->info->chunks_y)
     return false;
-
-  for (int oy = 0; oy < world->info->chunk_height; oy++)
+  
+  worldinfo_t info = *world->info;
+  int w = info.chunk_width, h = info.chunk_height, x = cx * w, y = cy * h;
+  
+  for (int oy = 0; oy < h; oy++)
   {
-    int x = cx * world->info->chunk_width,
-        y = cy * world->info->chunk_height + oy;
-    memcpy(&dst[oy * world->info->chunk_width],
-        &world->data[x + y * world->info->chunk_width],
-        world->info->chunk_width);
+    uint8_t *src = &world->data[(y + oy) * world->width + x];
+    memcpy(&dst[oy * w], src, w);
   }
+
+
   return true;
 }
 

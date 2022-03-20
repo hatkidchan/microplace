@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "cli_state.h"
 #include "cli_networking.h"
+#include "cli_pkhandlers.h"
 
 #ifdef PLATFORM_WEB
 #include <emscripten/emscripten.h>
@@ -16,14 +17,27 @@
 #include "mongoose.h"
 #endif
 
-void on_message(void *fnd, void *data, size_t size);
-void on_error(void *fnd, char *msg);
 void main_loop(void *fnd);
 int main(void)
 {
-  InitWindow(800, 600, "microplace");
-  SetTargetFPS(60);
-  state_t state = { 0 };
+  state_t state = {
+    .width = 800,
+    .height = 600,
+    .camera.zoom = 2.0,
+    .camera.offset.x = 400,
+    .camera.offset.y = 300,
+    .camera.target.x = 400,
+    .camera.target.y = 300,
+    .camera.rotation = 0.0,
+    .selected_pix = 0xaa
+  };
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  InitWindow(state.width, state.height, "microplace");
+  SetWindowMinSize(state.width, state.height);
+  SetTargetFPS(120);
+  memset(&state.chat, 0, sizeof(state.chat));
+  memset(&state.world, 0, sizeof(state.world));
+  strncpy(state.server_address, "ws://51.15.69.42:8092/ws", 256);
 #ifdef PLATFORM_WEB
   emscripten_set_main_loop_arg(main_loop, &state, 0, 1);
 #else
@@ -43,68 +57,48 @@ int main(void)
   return 0;
 }
 
-void on_message(void *fnd, void *data, size_t size)
-{
-  (void)fnd; (void)data; (void)size;
-}
-
-void on_error(void *fnd, char *msg)
-{
-  (void)fnd; (void)msg;
-}
-
 void main_loop(void *fnd)
 {
   state_t *state = (state_t *)fnd;
-  (void)state;
-  BeginDrawing();
+  if ((state->is_resized = IsWindowResized()))
   {
-    switch (state->state)
-    {
-      case CLST_WHEREAMI:
-        ClearBackground(RED);
-        DrawText("OOPS", 16, 16, 32, WHITE);
-        state->state = CLST_CONNECTING;
-        cnet_connect(state, "ws://192.168.88.241:8092/ws");
-        break;
-      case CLST_CONNECTING:
-        ClearBackground(YELLOW);
-        DrawText("CONNECTING TO THE SERVER...", 16, 16, 32, BLACK);
-        if (cnet_is_connected(state))
-        {
-          state->state = CLST_CONNECTED;
-          state->animation_frames_left = 30;
-        }
-        else if (state->sock_dropped)
-        {
-          state->state = CLST_DISCONNECTED;
-          state->animation_frames_left = 30;
-        }
-        break;
-      case CLST_CONNECTED:
-        ClearBackground(WHITE);
-        DrawText("CONNECTED!!!!", 16, 16, 32, GREEN);
-        if ((state->animation_frames_left--) <= 0)
-          state->state = CLST_MAINLOOP;
-        break;
-      case CLST_MAINLOOP:
-        ClearBackground(WHITE);
-        DrawText("mm yes yes", 16, 16, 32, BLACK);
-        if (!cnet_is_connected(state))
-          state->state = CLST_DISCONNECTED;
-        break;
-      case CLST_DISCONNECTED:
-        ClearBackground(RED);
-        DrawText("DISCONNECTED", 16, 16, 32, WHITE);
-        state->animation_frames_left = 30;
-        state->state = CLST_RECONNECTING;
-        break;
-      case CLST_RECONNECTING:
-        if ((state->animation_frames_left--) <= 0)
-          state->state = CLST_WHEREAMI;
-        break;
-    }
+    state->width = GetScreenWidth();
+    state->height = GetScreenHeight();
+    state->camera.offset.x = state->width / 2.0;
+    state->camera.offset.y = state->height / 2.0;
   }
-  EndDrawing();
-  state->frame++;
+
+  switch (state->state)
+  {
+    case CLST_BOOT:
+      handle_state_boot(state);
+      break;
+    case CLST_LOGIN_SCREEN:
+      handle_state_login_screen(state);
+      break;
+    case CLST_CONNECTING:
+      handle_state_connecting(state);
+      break;
+    case CLST_EXCHANGING:
+      handle_state_exchanging(state);
+      break;
+    case CLST_MAINLOOP:
+      handle_state_mainloop(state);
+      break;
+    case CLST_CONNECTION_FAILED:
+      handle_state_connection_failed(state);
+      break;
+    case CLST_RECONNECT_BEGIN:
+      handle_state_reconnect_begin(state);
+      break;
+    case CLST_RECONNECT_WAIT:
+      handle_state_reconnect_wait(state);
+      break;
+    case CLST_RECONNECT_FAILED:
+      handle_state_reconnect_failed(state);
+      break;
+    case CLST_KICKED:
+      handle_state_kicked(state);
+      break;
+  }
 }
