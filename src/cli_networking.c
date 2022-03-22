@@ -1,5 +1,7 @@
 #include "cli_networking.h"
+#include "cli_pkhandlers.h"
 #include "utils.h"
+#include <stdio.h>
 
 #ifdef PLATFORM_WEB
 EM_BOOL ws_on_open(int et, const EmscriptenWebSocketOpenEvent *ev, void *s);
@@ -12,7 +14,7 @@ void ws_handler(struct mg_connection *c, int ev, void *evd, void *fnd);
 
 void cnet_connect(state_t *state, const char *addr)
 {
-  (void)state; (void)addr;
+  printf("Connecting to %s...\n", addr);
 #ifdef PLATFORM_WEB
   EmscriptenWebSocketCreateAttributes wsattr = {
     .url = addr, .protocols = NULL, .createOnMainThread = true
@@ -28,7 +30,6 @@ void cnet_connect(state_t *state, const char *addr)
   emscripten_websocket_set_onmessage_callback_on_thread(wsock, state,
       ws_on_message, EM_CALLBACK_THREAD_CONTEXT_MAIN_BROWSER_THREAD);
 #else
-  printf("Connecting to %s...\n", addr);
   state->conn = mg_ws_connect(state->manager, addr, ws_handler, state, NULL);
 #endif
 }
@@ -38,7 +39,7 @@ bool cnet_is_connected(state_t *state)
   return state->sock_connected
     && !state->sock_dropped
 #ifdef PLATFORM_WEB
-    && false
+    && true
 #else
     && state->conn != NULL
 #endif
@@ -46,7 +47,40 @@ bool cnet_is_connected(state_t *state)
 }
 
 #ifdef PLATFORM_WEB
-#error "TODO: do stuff lol"
+
+EM_BOOL ws_on_open(int et, const EmscriptenWebSocketOpenEvent *ev, void *s)
+{
+  state_t *state = (state_t *)s;
+  state->sock_connected = true;
+  state->sock_dropped = false;
+  return true;
+}
+
+EM_BOOL ws_on_close(int et, const EmscriptenWebSocketCloseEvent *ev, void *s)
+{
+  state_t *state = (state_t *)s;
+  state->sock_connected = false;
+  state->sock_dropped = true;
+  return true;
+}
+
+EM_BOOL ws_on_message(int et, const EmscriptenWebSocketMessageEvent *ev, void *s)
+{
+  state_t *state = (state_t *)s;
+  on_message(s, (void *)ev->data, ev->numBytes);
+  return true;
+}
+
+EM_BOOL ws_on_error(int et, const EmscriptenWebSocketErrorEvent *ev, void *s)
+{
+  state_t *state = (state_t *)s;
+  on_error(s, "Unknown error");
+  state->sock_connected = false;
+  state->sock_dropped = true;
+  state->wsock = 0;
+  return true;
+}
+
 #else
 
 void ws_handler(struct mg_connection *c, int ev, void *evd, void *fnd)

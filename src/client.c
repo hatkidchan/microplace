@@ -37,6 +37,7 @@ int main(void)
   SetTargetFPS(120);
   memset(&state.chat, 0, sizeof(state.chat));
   memset(&state.world, 0, sizeof(state.world));
+//  strncpy(state.server_address, "ws://51.15.69.42:8092/ws", 256);
   strncpy(state.server_address, "ws://51.15.69.42:8092/ws", 256);
 #ifdef PLATFORM_WEB
   emscripten_set_main_loop_arg(main_loop, &state, 0, 1);

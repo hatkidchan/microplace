@@ -22,8 +22,8 @@ int main(void)
   if (!server.world->ready)
   {
     worldinfo_t opts = {
-      .chunk_width = 128, .chunk_height = 128,
-      .chunks_x = 8, .chunks_y = 8
+      .chunk_width = 40, .chunk_height = 40,
+      .chunks_x = 25, .chunks_y = 25
     };
     strncpy(opts.name, "test world", 128);
     strncpy(opts.description, "sample text sample text", 256);

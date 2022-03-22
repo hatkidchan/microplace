@@ -4,6 +4,7 @@
 #include "packets.h"
 #include <assert.h>
 #include <raylib.h>
+#include <stdio.h>
 
 const Color PALETTE_ANSI_VGA[16] = {
     {   0,   0,   0, 255 },
@@ -112,7 +113,7 @@ void on_message(void *fnd, void *data, size_t size)
             if (!state->world.has_chunk[x + y * 256])
             {
               pk_c_crq_t pkt = { .cx = x, .cy = y };
-              send_pk_c_crq(state->conn, pkt);
+              send_pk_c_crq(state, pkt);
               return;
             }
           }

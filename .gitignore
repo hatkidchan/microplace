@@ -3,7 +3,7 @@ src/filesystem.c
 pack
 server
 client
-client.exe
+client.*
 world.*
 *.data
 *.bin

@@ -1,5 +1,9 @@
 #include "utils.h"
+#ifdef PLATFORM_WEB
+#include <sys/time.h>
+#else
 #include <time.h>
+#endif
 
 #ifdef __U_CUSTOM_STRNLEN
 // http://stackoverflow.com/questions/21536064/ddg#21536247

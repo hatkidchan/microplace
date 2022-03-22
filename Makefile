@@ -4,7 +4,7 @@ CFLAGS := -Wall -Wextra -fshort-enums
 MGFLAGS := -DMG_ENABLE_LOG=1 -DMG_ENABLE_LINES=1
 INCLUDES := -I./src
 INCLUDES_CLIENT := $(INCLUDES) -I./raygui/src
-PACKED_FILES := world.data
+PACKED_FILES := client.html client.js client.wasm
 
 CFLAGS := $(CFLAGS) $(MGFLAGS)
 
@@ -20,15 +20,16 @@ OBJS_CLIENT := obj/mongoose-client.o \
 all: client server
 
 clean: clean-client clean-server
+	$(RM) obj/*.*
 	
 pack: pack.c
 	$(CC) -o $@ $^
 
-src/filesystem.c: pack
+src/filesystem.c: pack Makefile
 	./pack $(PACKED_FILES) > src/filesystem.c
 
 clean-server:
-	$(RM) server obj/srv*.o obj/mongoose.o
+	$(RM) server obj/srv*.o obj/mongoose.o obj/raygui.c
 
 clean-client:
 	$(RM) client* $(OBJS_CLIENT)
@@ -48,10 +49,10 @@ obj/mongoose-client.o: src/mongoose.c
 obj/utils-client.o: src/utils.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES_CLIENT)
 
-obj/raygui.o: raygui/src/raygui.c
+obj/raygui.o: obj/raygui.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES_CLIENT) -DRAYGUI_IMPLEMENTATION
 
-raygui/src/raygui.c: raygui/src/raygui.h
+obj/raygui.c: raygui/src/raygui.h
 	cp $^ $@
 
 obj/cli_%.o: src/cli_%.c

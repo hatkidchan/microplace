@@ -64,6 +64,7 @@ typedef struct state_s {
   int timer_started_frame;
 
   char server_address[256];
+  bool server_address_ed;
   chatmessage_t chat[16];
   worldinfo_t world;
   uint8_t selected_pix;

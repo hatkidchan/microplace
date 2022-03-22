@@ -47,6 +47,11 @@ void handle_state_login_screen(state_t *state)
       .x = (state->width - 400) / 2., .y = y,
       .width = 400, .height = 40
     };
+    if (GuiTextBox(rec, state->server_address, 128, state->server_address_ed))
+      state->server_address_ed ^= 1;
+    
+    rec.y += rec.height + 10;
+
     if (GuiButton(rec, "Connect"))
     {
       cnet_connect(state, state->server_address);
@@ -54,7 +59,7 @@ void handle_state_login_screen(state_t *state)
       state->timer_started_frame = state->frame;
       state->world.ready = false;
     }
-    y += 50;
+    rec.y += rec.height + 10;
     DrawFPS(8, 8);
     DrawText(TextFormat("n=%d", state->frame), 98, 8, 16, BLUE);
   }
@@ -104,7 +109,7 @@ void handle_state_exchanging(state_t *state)
     if (state->world.ready)
     {
       pk_c_crq_t pkt = { .cx = 0, .cy = 0 };
-      send_pk_c_crq(state->conn, pkt);
+      send_pk_c_crq(state, pkt);
       state->state = CLST_MAINLOOP;
     }
     DrawFPS(8, 8);
@@ -160,7 +165,7 @@ void handle_state_mainloop(state_t *state)
       chatmessage_t *msg = &state->chat[i];
       if (msg->phase <= 0.01) continue;
       
-      float alpha = msg->phase >= 0.75 ? 1.0 : msg->phase / 0.75;
+      float alpha = msg->phase >= 0.5 ? 1.0 : msg->phase / 0.5;
 
       for (int oy = -1; oy <= 1; oy++)
       {
@@ -170,7 +175,7 @@ void handle_state_mainloop(state_t *state)
         }
       }
       DrawText(msg->text, 8, y, 20, Fade(msg->color, alpha));
-      msg->phase *= 0.99;
+      msg->phase *= 0.999;
     }
     
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
@@ -180,7 +185,7 @@ void handle_state_mainloop(state_t *state)
         .y = worldpos.y,
         .val = state->selected_pix
       };
-      send_pk_c_set(state->conn, pkt);
+      send_pk_c_set(state, pkt);
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
     {
@@ -189,7 +194,7 @@ void handle_state_mainloop(state_t *state)
         .y = worldpos.y,
         .val = state->selected_pix
       };
-      send_pk_c_set(state->conn, pkt);
+      send_pk_c_set(state, pkt);
     }
     
     DrawFPS(8, 8);
