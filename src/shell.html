@@ -411,19 +411,12 @@ function HaTTY(elem, opts) {
 </head>
 <body>
   <div id="desktop">
+    <canvas id="emscripten-canvas"></canvas>
     <!-- terminal -->
     <div class="window" id="terminal">
       <div class="window-title">Terminal</div>
       <div class="window-content">
         <canvas id="terminal-canvas"></canvas>
-      </div>
-    </div>
-    
-    <!-- emscripten app -->
-    <div class="window" id="emwindow">
-      <div class="window-title">Emscripten-powered content</div>
-      <div class="window-content">
-        <canvas id="emscripten-canvas"></canvas>
       </div>
     </div>
   </div>
@@ -433,11 +426,9 @@ function HaTTY(elem, opts) {
   <script>
     
     const wnd_terminal_el = document.querySelector("#terminal"),
-      wnd_emscripten_el = document.querySelector("#emwindow"),
       cnv_terminal_el = document.querySelector("#terminal-canvas"),
       cnv_emscripten_el = document.querySelector("#emscripten-canvas"),
       wnd_terminal = new FloatingWindow(wnd_terminal_el, 600, 450),
-      wnd_emscripten = new FloatingWindow(wnd_emscripten_el, 10240, 10240),
       el_clock = document.querySelector("#clock"),
       terminal = new HaTTY(cnv_terminal_el, {
         'palette': termpalettes.satori,
@@ -457,7 +448,6 @@ function HaTTY(elem, opts) {
       }, 500);
     
     wnd_terminal.setPos(50, 50);
-    wnd_emscripten.setPos(150, 150);
     terminal.write("\x1b[32mhkc\x1b[33m:\x1b[34m~\n\x1b[32m> \x1b[0mapp\n");
     const drop_event = (e) => { e.preventDefault(); return false; };
     cnv_emscripten_el.addEventListener("contextmenu", drop_event);
@@ -465,7 +455,19 @@ function HaTTY(elem, opts) {
     cnv_emscripten_el.addEventListener("keydown", drop_event);
     window.addEventListener("keypress", drop_event);
     
-    console.log(cnv_emscripten_el);
+    function resize() {
+      cnv_emscripten_el.width = window.innerWidth;
+      cnv_emscripten_el.height = window.innerHeight;
+    }
+    window.addEventListener('load', resize);
+    window.addEventListener('resize', resize);
+    
+    wnd_terminal.title.addEventListener('dblclick', function() {
+      if (wnd_terminal.elem.dataset.closed == 'true')
+        wnd_terminal.elem.dataset.closed = 'false';
+      else
+        wnd_terminal.elem.dataset.closed = 'true';
+    });
 
     var Module = {
       preRun: [],

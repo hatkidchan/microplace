@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <getopt.h>
 
 uint8_t worldgen(uint16_t x, uint16_t y)
 {
@@ -11,15 +12,36 @@ uint8_t worldgen(uint16_t x, uint16_t y)
   return (x + y) & 0xff;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
-  server_t server;
-  if (!(server.world = world_open("world.data")))
+  char *world_path = "world.data";
+  int c;
+  bool regenerate = false;
+  int port = 8092;
+  while ((c = getopt(argc, argv, "gf:p:")) != -1)
+  {
+    switch (c)
+    {
+      case 'g':
+        regenerate = true;
+        break;
+      case 'f':
+        world_path = optarg;
+        break;
+      case 'p':
+        port = atoi(optarg);
+        break;
+    }
+  }
+  
+
+  server_t server = { 0 };
+  if (!(server.world = world_open(world_path)))
   {
     perror("shit happened"); return 1;
   }
   
-  if (!server.world->ready)
+  if (!server.world->ready || regenerate)
   {
     worldinfo_t opts = {
       .chunk_width = 40, .chunk_height = 40,
@@ -45,9 +67,10 @@ int main(void)
       server.world->info->chunk_width,
       server.world->info->chunk_height);
 
+  char addr[128];
+  snprintf(addr, 128, "ws://0.0.0.0:%d/ws", port);
   mg_mgr_init(&server.manager);
-  mg_http_listen(&server.manager, "ws://0.0.0.0:8092/ws",
-      handle_mongoose, &server);
+  mg_http_listen(&server.manager, addr, handle_mongoose, &server);
   while (!server.should_stop)
     mg_mgr_poll(&server.manager, 1000);
   

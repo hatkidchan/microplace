@@ -1,4 +1,5 @@
 obj/*.o
+obj/raygui.c
 src/filesystem.c
 pack
 server

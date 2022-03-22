@@ -54,10 +54,12 @@ void handle_state_login_screen(state_t *state)
 
     if (GuiButton(rec, "Connect"))
     {
-      cnet_connect(state, state->server_address);
       state->state = CLST_CONNECTING;
       state->timer_started_frame = state->frame;
       state->world.ready = false;
+      state->sock_dropped = false;
+      state->sock_connected = false;
+      cnet_connect(state, state->server_address);
     }
     rec.y += rec.height + 10;
     DrawFPS(8, 8);
@@ -220,7 +222,7 @@ void handle_state_connection_failed(state_t *state)
     };
     if (GuiButton(rec, "Try again"))
     {
-      cnet_connect(state, "ws://192.168.88.241:8092/ws");
+      cnet_connect(state, state->server_address);
       state->timer_started_frame = state->frame;
       state->state = CLST_CONNECTING;
       state->world.ready = false;
@@ -229,6 +231,7 @@ void handle_state_connection_failed(state_t *state)
     if (GuiButton(rec, "Back to login screen"))
     {
       state->state = CLST_LOGIN_SCREEN;
+      state->world.ready = false;
     }
   }
   EndDrawing();

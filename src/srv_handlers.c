@@ -99,6 +99,7 @@ void handle_mongoose(struct mg_connection *c, int et, void *edt, void *fdt)
 void ws_on_open(server_t *srv, struct mg_connection *conn)
 {
   client_t *client = calloc(1, sizeof(client_t));
+  memset(client, 0, sizeof(client_t));
   client->id = conn->id;
   client->mgconn = conn;
   client->world = srv->world;
