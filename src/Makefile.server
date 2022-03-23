@@ -1,0 +1,32 @@
+CFLAGS := -Wall -Wextra -fshort-enums
+OBJFILES := ../obj/server/handlers.o \
+			../obj/server/pksender.o \
+			../obj/server/world.o \
+			../obj/server/utils.o \
+			../obj/server/filesystem.o \
+			../obj/server/mongoose.o
+INCLUDES := "-I../mongoose/"
+
+PACKED_FILES := 
+
+clean:
+	$(RM) ../obj/server/*.* ./server.elf
+
+server.elf: server.c $(OBJFILES)
+	$(CC) -o server.elf server.c $(CFLAGS) $(OBJFILES)
+	
+../obj/server/%.o: ./server/%.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
+
+../obj/server/mongoose.o: ../obj/server/mongoose.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES) -DMG_ENABLE_PACKED_FS=1
+
+../obj/server/filesystem.c: pack
+	./pack $(PACKED_FILES) > $@
+
+../obj/server/mongoose.c:
+	cp ../mongoose/mongoose.c ../obj/server/mongoose.c
+	cp ../mongoose/mongoose.h ../obj/server/mongoose.h
+
+pack: ../pack.c
+	$(CC) -o pack ../pack.c

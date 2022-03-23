@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   printf("%s", "#include <stddef.h>\n");
   printf("%s", "#include <string.h>\n");
   printf("%s", "#include <time.h>\n");
-  printf("%s", "#include \"filesystem.h\"");
+  printf("%s", "#include \"../../src/server/filesystem.h\"");
   printf("%s", "\n");
 
   for (i = 1; i < argc; i++) {

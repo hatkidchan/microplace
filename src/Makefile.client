@@ -1,0 +1,12 @@
+CFLAGS := -Wall -Wextra -fshort-enums
+OBJFILES := ../obj/client/
+INCLUDES := "-I../mongoose/"
+
+clean:
+	$(RM) ../obj/client/*.* ./client.elf
+
+client.elf: client.c $(OBJFILES)
+	$(CC) -o client.elf $(CFLAGS) $(OBJFILES)
+
+../obj/client/%.o: ./client/%.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)

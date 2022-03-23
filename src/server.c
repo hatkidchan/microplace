@@ -1,6 +1,6 @@
-#include "srv_state.h"
-#include "srv_world.h"
-#include "srv_handlers.h"
+#include "server/state.h"
+#include "server/world.h"
+#include "server/handlers.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

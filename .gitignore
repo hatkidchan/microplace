@@ -9,3 +9,5 @@ world.*
 *.data
 *.bin
 *.pal
+*.elf
+*.exe
