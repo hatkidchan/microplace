@@ -7,7 +7,7 @@ OBJFILES := ../obj/client/pksender.o \
 			../raylib/src/libraylib.a \
 			../obj/client/raygui.o
 
-LDFLAGS := -lm
+LDFLAGS := -lm -lGL -lpthread -ldl -lrt -lX11
 INCLUDES := "-I../mongoose/ -I../raylib/src/"
 
 clean:

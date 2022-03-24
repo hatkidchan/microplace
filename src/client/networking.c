@@ -1,6 +1,5 @@
 #include "networking.h"
 #include "pkhandlers.h"
-#include "utils.h"
 #include <stdio.h>
 
 #ifdef PLATFORM_WEB

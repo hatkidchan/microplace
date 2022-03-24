@@ -14,7 +14,7 @@
 #define _WINSOCK2API_
 #define _WS2TCPIP_H_
 #endif
-#include "mongoose.h"
+#include "../mongoose/mongoose.h"
 #endif
 
 void main_loop(void *fnd);

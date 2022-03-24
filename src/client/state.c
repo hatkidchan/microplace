@@ -2,8 +2,8 @@
 #include "networking.h"
 #include "../packets.h"
 #include "pksender.h"
-#include <raylib.h>
-#include <raygui.h>
+#include "../../raylib/src/raylib.h"
+#include "../../raygui/src/raygui.h"
 #include <math.h>
 
 void __handle_pan_zoom(state_t *state);

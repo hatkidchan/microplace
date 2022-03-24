@@ -1,5 +1,4 @@
 #include "pksender.h"
-#include "utils.h"
 #include <assert.h>
 
 size_t make_pk_c_set(pk_c_set_t pkt, uint8_t *dst, size_t lim)
