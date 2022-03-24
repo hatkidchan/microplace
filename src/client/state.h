@@ -1,7 +1,7 @@
 #ifndef _CLIENT_STATE_H_
 #define _CLIENT_STATE_H_
 
-#include <raylib.h>
+#include "../../raylib/src/raylib.h"
 #ifdef PLATFORM_WEB
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>

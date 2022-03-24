@@ -8,19 +8,19 @@ OBJFILES := ../obj/client/pksender.o \
 			../obj/client/raygui.o
 
 LDFLAGS := -lm -lGL -lpthread -ldl -lrt -lX11
-INCLUDES := "-I../mongoose/ -I../raylib/src/"
+INCLUDES := -I../mongoose/ -I../raylib/src/
 
 clean:
 	$(RM) ../obj/client/*.* ./client.elf
 
-client.elf: client.c $(OBJFILES) ../raylib/src/libraylib.a
+client.elf: client.c ../raylib/src/libraylib.a $(OBJFILES)
 	$(CC) -o client.elf client.c $(CFLAGS) $(OBJFILES) $(LDFLAGS)
 
 ../obj/client/%.o: ./client/%.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
 
 ../obj/client/mongoose.o: ../obj/client/mongoose.c
-	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES) -DMG_ENABLE_FILE=0
 
 ../obj/client/mongoose.c:
 	cp ../mongoose/mongoose.c ../obj/client/mongoose.c
@@ -30,6 +30,7 @@ client.elf: client.c $(OBJFILES) ../raylib/src/libraylib.a
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES) -DRAYGUI_IMPLEMENTATION
 	
 ../obj/client/raygui.c: ../raygui/src/raygui.h
+	cp ../raylib/src/raylib.h ../obj/client/raylib.h
 	cp ../raygui/src/raygui.h ../obj/client/raygui.c
 
 ../raylib/src/libraylib.a:

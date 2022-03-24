@@ -1,5 +1,5 @@
 #include <math.h>
-#include <raylib.h>
+#include "../raylib/src/raylib.h"
 #include <stddef.h>
 #include "client/state.h"
 #include "client/networking.h"
