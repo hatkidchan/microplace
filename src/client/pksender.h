@@ -1,8 +1,8 @@
 #ifndef _C_PKSENDER_H_
 #define _C_PKSENDER_H_
 
-#include "packets.h"
-#include "cli_state.h"
+#include "../packets.h"
+#include "state.h"
 #ifdef PLATFORM_WEB
 #include <emscripten/emscripten.h>
 #include <emscripten/websocket.h>
@@ -11,7 +11,7 @@
 #define _WINSOCK2API_
 #define _WS2TCPIP_H_
 #endif
-#include "mongoose.h"
+#include "../../mongoose/mongoose.h"
 #endif
 
 size_t make_pk_c_set(pk_c_set_t pkt, uint8_t *dst, size_t lim);

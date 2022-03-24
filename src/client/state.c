@@ -1,7 +1,7 @@
-#include "cli_state.h"
-#include "cli_networking.h"
-#include "packets.h"
-#include "cli_pksender.h"
+#include "state.h"
+#include "networking.h"
+#include "../packets.h"
+#include "pksender.h"
 #include <raylib.h>
 #include <raygui.h>
 #include <math.h>

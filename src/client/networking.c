@@ -1,5 +1,5 @@
-#include "cli_networking.h"
-#include "cli_pkhandlers.h"
+#include "networking.h"
+#include "pkhandlers.h"
 #include "utils.h"
 #include <stdio.h>
 
@@ -87,8 +87,6 @@ void ws_handler(struct mg_connection *c, int ev, void *evd, void *fnd)
 {
   (void)c;
   state_t *state = (state_t *)fnd;
-  if (ev != MG_EV_POLL)
-    printf("MG_WS: %d %s\n", ev, mg_ev_str(ev));
   switch (ev)
   {
     case MG_EV_ERROR:

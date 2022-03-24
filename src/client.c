@@ -1,9 +1,9 @@
 #include <math.h>
 #include <raylib.h>
 #include <stddef.h>
-#include "cli_state.h"
-#include "cli_networking.h"
-#include "cli_pkhandlers.h"
+#include "client/state.h"
+#include "client/networking.h"
+#include "client/pkhandlers.h"
 
 #ifdef PLATFORM_WEB
 #include <emscripten/emscripten.h>

@@ -1,12 +1,36 @@
-CFLAGS := -Wall -Wextra -fshort-enums
-OBJFILES := ../obj/client/
-INCLUDES := "-I../mongoose/"
+CFLAGS := -fshort-enums
+OBJFILES := ../obj/client/pksender.o \
+			../obj/client/state.o \
+			../obj/client/networking.o \
+			../obj/client/pkhandlers.o \
+			../obj/client/mongoose.o \
+			../raylib/src/libraylib.a \
+			../obj/client/raygui.o
+
+LDFLAGS := -lm
+INCLUDES := "-I../mongoose/ -I../raylib/src/"
 
 clean:
 	$(RM) ../obj/client/*.* ./client.elf
 
-client.elf: client.c $(OBJFILES)
-	$(CC) -o client.elf $(CFLAGS) $(OBJFILES)
+client.elf: client.c $(OBJFILES) ../raylib/src/libraylib.a
+	$(CC) -o client.elf client.c $(CFLAGS) $(OBJFILES) $(LDFLAGS)
 
 ../obj/client/%.o: ./client/%.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
+
+../obj/client/mongoose.o: ../obj/client/mongoose.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
+
+../obj/client/mongoose.c:
+	cp ../mongoose/mongoose.c ../obj/client/mongoose.c
+	cp ../mongoose/mongoose.h ../obj/client/mongoose.h
+
+../obj/client/raygui.o: ../obj/client/raygui.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES) -DRAYGUI_IMPLEMENTATION
+	
+../obj/client/raygui.c: ../raygui/src/raygui.h
+	cp ../raygui/src/raygui.h ../obj/client/raygui.c
+
+../raylib/src/libraylib.a:
+	( cd ../raylib/src; make )

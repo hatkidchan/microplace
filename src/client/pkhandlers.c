@@ -1,7 +1,7 @@
-#include "cli_pkhandlers.h"
-#include "cli_pksender.h"
-#include "cli_state.h"
-#include "packets.h"
+#include "pkhandlers.h"
+#include "pksender.h"
+#include "state.h"
+#include "../packets.h"
 #include <assert.h>
 #include <raylib.h>
 #include <stdio.h>
