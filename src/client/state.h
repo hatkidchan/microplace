@@ -67,7 +67,15 @@ typedef struct state_s {
   bool server_address_ed;
   chatmessage_t chat[16];
   worldinfo_t world;
+  
+  // color picker
+  Vector2 colpick_center;
+  bool colpick_open;
+  double colpick_time;
   uint8_t selected_pix;
+  
+  // double click
+  double last_click;
   
   Vector2 s_login_points_pos[256];
   Color s_login_points_clr[256];

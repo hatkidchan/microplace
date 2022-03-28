@@ -1,31 +1,12 @@
 #include "pkhandlers.h"
 #include "pksender.h"
 #include "state.h"
+#include "utils.h"
 #include "../packets.h"
 #include <assert.h>
 #include <raylib.h>
 #include <stdio.h>
 
-const Color PALETTE_ANSI_VGA[16] = {
-    {   0,   0,   0, 255 },
-    { 170,   0,   0, 255 },
-    {   0, 170,   0, 255 },
-    { 170,  85,   0, 255 },
-    {   0,   0, 170, 255 },
-    { 170,   0, 170, 255 },
-    {   0, 170, 170, 255 },
-    { 170, 170, 170, 255 },
-    {  85,  85,  85, 255 },
-    { 255,  85,  85, 255 },
-    {  85, 255,  85, 255 },
-    { 255, 255,  85, 255 },
-    {  85,  85, 255, 255 },
-    { 255,  85, 255, 255 },
-    {  85, 255, 255, 255 },
-    { 255, 255, 255, 255 }
-};
-
-Color Color256(uint8_t i);
 
 void on_message(void *fnd, void *data, size_t size)
 {
@@ -95,6 +76,7 @@ void on_message(void *fnd, void *data, size_t size)
         state->world.has_chunk[pkt.x + pkt.y * 256] = true;
         int gox = pkt.x * state->world.cw,
             goy = pkt.y * state->world.ch;
+        printf("pos: %d:%d (%d:%d)\n", gox, goy, pkt.x, pkt.y);
         BeginTextureMode(state->canvas);
         for (int oy = 0; oy < state->world.ch; oy++)
         {
@@ -128,19 +110,3 @@ void on_error(void *fnd, char *msg)
   (void)fnd; (void)msg;
 }
 
-Color Color256(uint8_t i)
-{
-  Color c = WHITE;
-  if (i < 16) return PALETTE_ANSI_VGA[i];
-  else if (i >= 232)
-  {
-    c.r = c.g = c.b = (i - 232) * 255 / 24;
-  }
-  else
-  {
-    i -= 16; c.b = (i % 6) * 42;
-    i /= 6; c.g = (i % 6) * 42;
-    i /= 6; c.r = (i % 6) * 42;
-  }
-  return c;
-}

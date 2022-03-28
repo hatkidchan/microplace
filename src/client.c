@@ -21,15 +21,17 @@ void main_loop(void *fnd);
 int main(void)
 {
   state_t state = {
-    .width = 800,
-    .height = 600,
+    .width = 640,
+    .height = 480,
     .camera.zoom = 2.0,
     .camera.offset.x = 400,
     .camera.offset.y = 300,
     .camera.target.x = 400,
     .camera.target.y = 300,
     .camera.rotation = 0.0,
-    .selected_pix = 0xaa
+    .selected_pix = 0xaa,
+    .colpick_open = false,
+    .colpick_time = 0.0
   };
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(state.width, state.height, "microplace");
@@ -37,8 +39,8 @@ int main(void)
   SetTargetFPS(120);
   memset(&state.chat, 0, sizeof(state.chat));
   memset(&state.world, 0, sizeof(state.world));
-//  strncpy(state.server_address, "ws://51.15.69.42:8092/ws", 256);
-  strncpy(state.server_address, "ws://51.15.69.42:8092/ws", 256);
+//  strncpy(state.server_address, "ws://hatkidchan.is-a.dev/mipla/ws", 256);
+  strncpy(state.server_address, "ws://127.0.0.1:8092/ws", 256);
 #ifdef PLATFORM_WEB
   emscripten_set_main_loop_arg(main_loop, &state, 0, 1);
 #else

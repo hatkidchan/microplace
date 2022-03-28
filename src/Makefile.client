@@ -1,10 +1,11 @@
 CFLAGS := -fshort-enums
 OBJFILES := ../obj/client/pksender.o \
+			../obj/client/utils.o \
 			../obj/client/state.o \
 			../obj/client/networking.o \
 			../obj/client/pkhandlers.o \
 			../obj/client/mongoose.o \
-			../raylib/src/libraylib.a \
+			../raylib/libraylib.a \
 			../obj/client/raygui.o
 
 LDFLAGS := -lm -lGL -lpthread -ldl -lrt -lX11
@@ -12,8 +13,9 @@ INCLUDES := -I../mongoose/ -I../raylib/src/
 
 clean:
 	$(RM) ../obj/client/*.* ./client.elf
+	make -C ../raylib/src clean
 
-client.elf: client.c ../raylib/src/libraylib.a $(OBJFILES)
+client.elf: client.c ../raylib/libraylib.a $(OBJFILES)
 	$(CC) -o client.elf client.c $(CFLAGS) $(OBJFILES) $(LDFLAGS)
 
 ../obj/client/%.o: ./client/%.c
@@ -33,5 +35,5 @@ client.elf: client.c ../raylib/src/libraylib.a $(OBJFILES)
 	cp ../raylib/src/raylib.h ../obj/client/raylib.h
 	cp ../raygui/src/raygui.h ../obj/client/raygui.c
 
-../raylib/src/libraylib.a:
+../raylib/libraylib.a:
 	( cd ../raylib/src; make )

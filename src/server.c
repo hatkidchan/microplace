@@ -44,8 +44,8 @@ int main(int argc, char **argv)
   if (!server.world->ready || regenerate)
   {
     worldinfo_t opts = {
-      .chunk_width = 40, .chunk_height = 40,
-      .chunks_x = 25, .chunks_y = 25
+      .chunk_width = 16, .chunk_height = 8,
+      .chunks_x = 2, .chunks_y = 4
     };
     strncpy(opts.name, "test world", 128);
     strncpy(opts.description, "sample text sample text", 256);

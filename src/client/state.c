@@ -1,4 +1,5 @@
 #include "state.h"
+#include "utils.h"
 #include "networking.h"
 #include "../packets.h"
 #include "pksender.h"
@@ -6,8 +7,13 @@
 #include "../../raygui/src/raygui.h"
 #include <math.h>
 
+#define COLPICK_WIDTH 16
+
 void __handle_pan_zoom(state_t *state);
 void __render_flickers(state_t *state);
+void __handle_colpick(state_t *state);
+void __draw_color_circle(Vector2 center, int index);
+void __draw_text_shadowed(const char *txt, int x, int y, int size, Color color);
 
 void handle_state_boot(state_t *state)
 {
@@ -62,8 +68,27 @@ void handle_state_login_screen(state_t *state)
       cnet_connect(state, state->server_address);
     }
     rec.y += rec.height + 10;
-    DrawFPS(8, 8);
-    DrawText(TextFormat("n=%d", state->frame), 98, 8, 16, BLUE);
+    
+    const struct {
+      Color color;
+      char text[128];
+      int size;
+    } lines[] = {
+      { GRAY, "Controls:", 12 },
+      { GRAY, "LMB Drag - pan", 12 },
+      { GRAY, "Mouse wheel - zoom", 12 },
+      { GRAY, "LMB double - place pixel", 12 },
+      { GRAY, "RMB Hold/Click - color picker", 12 },
+      { GRAY, "MMB Click - copy color", 12 },
+      { MAROON, "ESC - exit", 12 },
+      { GRAY, "", 12 },
+    };
+
+    for (int i = 0; i < sizeof(lines) / sizeof(lines[0]); i++)
+    {
+      DrawText(lines[i].text, rec.x, rec.y, lines[i].size, lines[i].color);
+      rec.y += lines[i].size;
+    }
   }
   EndDrawing();
   state->frame++;
@@ -156,10 +181,10 @@ void handle_state_mainloop(state_t *state)
     {
       for (int ox = -1; ox <= 1; ox++)
       {
-        DrawText(txt, mouse.x + ox, mouse.y + oy, 14, BLACK);
+        DrawText(txt, mouse.x + ox, mouse.y + oy + 14, 14, BLACK);
       }
     }
-    DrawText(txt, mouse.x, mouse.y, 14, WHITE);
+    DrawText(txt, mouse.x, mouse.y + 14, 14, WHITE);
 
     for (int i = 0; i < 16; i++)
     {
@@ -169,26 +194,28 @@ void handle_state_mainloop(state_t *state)
       
       float alpha = msg->phase >= 0.5 ? 1.0 : msg->phase / 0.5;
 
-      for (int oy = -1; oy <= 1; oy++)
-      {
-        for (int ox = -1; ox <= 1; ox++)
-        {
-          DrawText(msg->text, 8 + ox, y + oy, 20, Fade(BLACK, alpha));
-        }
-      }
-      DrawText(msg->text, 8, y, 20, Fade(msg->color, alpha));
-      msg->phase *= 0.999;
+      __draw_text_shadowed(msg->text, 8, y, 20, Fade(msg->color, alpha));
+      msg->phase *= 0.995;
     }
+
+    __handle_colpick(state);
     
-    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !state->colpick_open)
     {
-      pk_c_set_t pkt = {
-        .x = worldpos.x,
-        .y = worldpos.y,
-        .val = state->selected_pix
-      };
-      send_pk_c_set(state, pkt);
+      double delta = GetTime() - state->last_click;
+      if (delta <= 0.3)
+      {
+        pk_c_set_t pkt = {
+          .x = worldpos.x,
+          .y = worldpos.y,
+          .val = state->selected_pix
+        };
+        send_pk_c_set(state, pkt);
+        state->last_click = GetTime() + delta * 2.0;
+      }
+      state->last_click = GetTime();
     }
+
     if (IsMouseButtonDown(MOUSE_BUTTON_MIDDLE))
     {
       pk_c_set_t pkt = {
@@ -304,5 +331,93 @@ void __render_flickers(state_t *state)
       clr->a = GetRandomValue(128, 256);
     }
   }
+  state->s_login_points_pos[0].x = (int)((GetMouseX() - 4.0) / 8.0);
+  state->s_login_points_pos[0].y = (int)((GetMouseY() - 4.0) / 8.0);
+  Vector2 delta = GetMouseDelta();
+  float delta_f = sqrtf(delta.x * delta.x + delta.y * delta.y);
+  if (delta_f >= 8.0)
+  {
+    state->s_login_points_clr[0].a = 255;
+  }
 }
 
+void __draw_color_circle(Vector2 center, int ndx)
+{
+  for (int ring = 0, color = 0; ring < 8; ring++)
+  {
+    int n_colors = ring == 0 ? 16 : (ring == 7 ? 24 : 36);
+    float r_inner = 24.0 + ring * COLPICK_WIDTH,
+          r_outer = r_inner + COLPICK_WIDTH,
+          step = 360.0 / (float)n_colors,
+          angle = 0.0;
+    for (int i = 0; i < n_colors; i++, angle += step, color++)
+    {
+      Color clr = Color256(color);
+      DrawRing(center, r_inner, r_outer, angle, angle + step, 20, clr);
+    }
+  }
+  
+  if (ndx >= 0 && ndx <= 255)
+  {
+    int ring = ndx < 16 ? 0 : (ndx >= 232 ? 7 : ((ndx - 16) / 36) + 1),
+        sector = ring == 0 ? ndx : (ring == 7 ? ndx - 232 : (ndx - 16) % 36),
+        colors = ring == 0 ? 16 : (ring == 7 ? 24 : 36);
+    float r_inner = 24.0 + ring * COLPICK_WIDTH,
+          r_outer = r_inner + COLPICK_WIDTH,
+          step = 360.0 / (float)colors, angle = sector * step;
+    
+    DrawRingLines(center, r_inner, r_outer, 0, 360, 90, WHITE);
+    DrawRingLines(center, r_inner, r_outer, angle, angle + step, 32, WHITE);
+  }
+}
+
+void __handle_colpick(state_t *state)
+{
+  Vector2 mouse = GetMousePosition();
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && !state->colpick_open)
+  {
+    state->colpick_center.x = mouse.x;
+    state->colpick_center.y = mouse.y;
+    state->colpick_open = true;
+    state->colpick_time = GetTime();
+  }
+  
+  if ((IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)
+        || (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && state->colpick_open))
+      && (GetTime() - state->colpick_time) >= 0.3)
+  {
+    state->colpick_open = false;
+  }
+  
+  if (state->colpick_open)
+  {
+    Vector2 direction = { mouse.x - state->colpick_center.x,
+      mouse.y - state->colpick_center.y };
+    float distance = sqrtf(powf(direction.x, 2.0) + powf(direction.y, 2.0));
+    float angle = atan2f(-direction.y, direction.x) * 180.0 / M_PI + 90.0;
+    
+    if (distance >= 24.0 && distance <= (24.0 + 8.0 * COLPICK_WIDTH))
+    {
+      int ring = (distance - 24.0) / COLPICK_WIDTH,
+          n_colors = ring == 0 ? 16 : (ring == 7 ? 24 : 36),
+          start = ring == 0 ? 0 : (ring == 7 ? 232 : ((ring - 1) * 36 + 16)),
+          sector = (int)floorf((angle + 360.0) * n_colors / 360.0) % n_colors;
+      state->selected_pix = start + sector;
+    }
+    
+    __draw_color_circle(state->colpick_center, state->selected_pix);
+  }
+}
+
+void __draw_text_shadowed(const char *txt, int x, int y, int size, Color color)
+{
+  for (int oy = -1; oy <= 1; oy++)
+  {
+    for (int ox = -1; ox <= 1; ox++)
+    {
+      DrawText(txt, 8 + ox, y + oy, 20, Fade(BLACK, color.a / 255.0));
+    }
+  }
+  DrawText(txt, 8, y, 20, color);
+}
