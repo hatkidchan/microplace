@@ -79,7 +79,7 @@ void handle_state_login_screen(state_t *state)
       { GRAY, "Mouse wheel - zoom", 12 },
       { GRAY, "LMB double - place pixel", 12 },
       { GRAY, "RMB Hold/Click - color picker", 12 },
-      { GRAY, "MMB Click - copy color", 12 },
+      { GRAY, "MMB Click - copy color (NOT WORKING YET)", 12 },
       { MAROON, "ESC - exit", 12 },
       { GRAY, "", 12 },
     };

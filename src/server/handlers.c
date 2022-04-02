@@ -105,7 +105,7 @@ void ws_on_open(server_t *srv, struct mg_connection *conn)
   client->world = srv->world;
   client->server = srv;
   memset(client->username, 0, 128);
-  mg_straddr(conn, client->address, 256);
+  mg_straddr(&conn->rem, client->address, 256);
   client->next = srv->clients_head;
   srv->clients_head = client;
   srv->n_clients++;
@@ -121,14 +121,18 @@ void ws_on_open(server_t *srv, struct mg_connection *conn)
   send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
   snprintf(tmp, 256, "NOTE: at this time, world is NOT protected");
   send_s_message(client, (uint8_t[3]){ 255, 0, 0 }, tmp);
+  snprintf(tmp, 256, "NOTE: no cooldown enabled now");
+  send_s_message(client, (uint8_t[3]){ 255, 0, 0 }, tmp);
   snprintf(tmp, 256, "Total world changes: %zd", srv->world->info->n_changes);
   send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
   snprintf(tmp, 256, "-!-=*=*=*=*=-!-");
   send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
   client->can_write = true;
   
+  snprintf(client->username, 128, "nyanner#%zd@%p", client->id, client);
+
   srv->world->info->n_connections++;
-  snprintf(tmp, 256, " * %s joined", client->address);
+  snprintf(tmp, 256, " * %s joined", client->username);
   send_s_bcast_msg(srv->clients_head, (uint8_t[3]){ 77, 255, 77 }, tmp);
   send_s_bcast_cnt(srv->clients_head);
 }
