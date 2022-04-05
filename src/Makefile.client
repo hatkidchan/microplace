@@ -4,19 +4,42 @@ OBJFILES := ../obj/client/pksender.o \
 			../obj/client/state.o \
 			../obj/client/networking.o \
 			../obj/client/pkhandlers.o \
-			../obj/client/mongoose.o \
 			../raylib/libraylib.a \
 			../obj/client/raygui.o
 
 LDFLAGS := -lm -lGL -lpthread -ldl -lrt -lX11
-INCLUDES := -I../mongoose/ -I../raylib/src/
+INCLUDES := -I../raylib/src/
+
+ifeq ($(PLATFORM),PLATFORM_WEB)
+	CFLAGS += -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2
+	RAYLIB_DEPS := ../raylib/src/rcore.o ../raylib/src/rshapes.o \
+				   ../raylib/src/rtextures.o ../raylib/src/rtext.o \
+				   ../raylib/src/rmodels.o ../raylib/src/utils.o \
+				   ../raylib/src/raudio.o
+	LDFLAGS := -lm -lwebsocket.js -s USE_GLFW=3 -s ASYNCIFY=1 \
+			   -s ALLOW_MEMORY_GROWTH=1 --shell-file=client/shell.html \
+			   -s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0
+	CLIENT_BINARY=client.html client.js client.wasm
+else
+	OBJFILES += ../obj/client/mongoose.o
+	INCLUDES += -I../mongoose/
+	CLIENT_BINARY=client.elf
+endif
+
+all: $(CLIENT_BINARY)
+
+filename:
+	echo $(CLIENT_BINARY) | tr ' ' '\n' | awk '{print"> "$$1}'
 
 clean:
-	$(RM) ../obj/client/*.* ./client.elf
+	$(RM) ../obj/client/*.* $(CLIENT_BINARY)
 	make -C ../raylib/src clean
 
 client.elf: client.c ../raylib/libraylib.a $(OBJFILES)
 	$(CC) -o client.elf client.c $(CFLAGS) $(OBJFILES) $(LDFLAGS)
+
+client.html: client.c ../raylib/libraylib.a $(OBJFILES)
+	$(CC) -o client.html client.c $(CFLAGS) $(OBJFILES) $(LDFLAGS)
 
 ../obj/client/%.o: ./client/%.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)
@@ -30,10 +53,17 @@ client.elf: client.c ../raylib/libraylib.a $(OBJFILES)
 
 ../obj/client/raygui.o: ../obj/client/raygui.c
 	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES) -DRAYGUI_IMPLEMENTATION
-	
+
 ../obj/client/raygui.c: ../raygui/src/raygui.h
 	cp ../raylib/src/raylib.h ../obj/client/raylib.h
 	cp ../raygui/src/raygui.h ../obj/client/raygui.c
 
-../raylib/libraylib.a:
+../raylib/libraylib.a: ${RAYLIB_DEPS}
+ifeq ($(PLATFORM),PLATFORM_WEB)
+	$(AR) rcs ../raylib/libraylib.a ${RAYLIB_DEPS}
+else
 	( cd ../raylib/src; make )
+endif
+
+../raylib/src/%.o: ../raylib/src/%.c
+	$(CC) -c -o $@ $^ $(CFLAGS) $(INCLUDES)

@@ -9,6 +9,8 @@ INCLUDES := "-I../mongoose/"
 
 PACKED_FILES := 
 
+all: server.elf
+
 clean:
 	$(RM) ../obj/server/*.* ./server.elf
 

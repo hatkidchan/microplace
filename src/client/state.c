@@ -41,7 +41,7 @@ void handle_state_login_screen(state_t *state)
       state->canvas.id = 0;
     }
     ClearBackground(BLACK);
-    
+
     __render_flickers(state);
 
     const char *text = "micro/place";
@@ -55,7 +55,7 @@ void handle_state_login_screen(state_t *state)
     };
     if (GuiTextBox(rec, state->server_address, 128, state->server_address_ed))
       state->server_address_ed ^= 1;
-    
+
     rec.y += rec.height + 10;
 
     if (GuiButton(rec, "Connect"))
@@ -68,7 +68,7 @@ void handle_state_login_screen(state_t *state)
       cnet_connect(state, state->server_address);
     }
     rec.y += rec.height + 10;
-    
+
     const struct {
       Color color;
       char text[128];
@@ -151,10 +151,10 @@ void handle_state_mainloop(state_t *state)
   BeginDrawing();
   {
     ClearBackground(BLACK);
-    
+
     __handle_pan_zoom(state);
-    
-    
+
+
     BeginMode2D(state->camera);
     {
       Rectangle source = {
@@ -170,12 +170,12 @@ void handle_state_mainloop(state_t *state)
       DrawTextureRec(state->canvas.texture, source, pos, WHITE);
     }
     EndMode2D();
-    
+
     Vector2 mouse = GetMousePosition();
     Vector2 worldpos = GetScreenToWorld2D(mouse, state->camera);
     worldpos.x = ceilf(worldpos.x - 1.0);
     worldpos.y = ceilf(worldpos.y - 1.0);
-    
+
     const char *txt = TextFormat("%d:%d", (int)worldpos.x, (int)worldpos.y);
     for (int oy = -1; oy <= 1; oy++)
     {
@@ -191,7 +191,7 @@ void handle_state_mainloop(state_t *state)
       int y = state->height - (16 - i) * 20;
       chatmessage_t *msg = &state->chat[i];
       if (msg->phase <= 0.01) continue;
-      
+
       float alpha = msg->phase >= 0.5 ? 1.0 : msg->phase / 0.5;
 
       __draw_text_shadowed(msg->text, 8, y, 20, Fade(msg->color, alpha));
@@ -199,7 +199,7 @@ void handle_state_mainloop(state_t *state)
     }
 
     __handle_colpick(state);
-    
+
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !state->colpick_open)
     {
       double delta = GetTime() - state->last_click;
@@ -225,7 +225,7 @@ void handle_state_mainloop(state_t *state)
       };
       send_pk_c_set(state, pkt);
     }
-    
+
     DrawFPS(8, 8);
     DrawText(TextFormat("n=%d", state->frame), 98, 8, 16, BLUE);
   }
@@ -267,22 +267,22 @@ void handle_state_connection_failed(state_t *state)
 
 void handle_state_reconnect_begin(state_t *state)
 {
-  
+
 }
 
 void handle_state_reconnect_wait(state_t *state)
 {
-  
+
 }
 
 void handle_state_reconnect_failed(state_t *state)
 {
-  
+
 }
 
 void handle_state_kicked(state_t *state)
 {
-  
+
 }
 
 void __handle_pan_zoom(state_t *state)
@@ -293,7 +293,7 @@ void __handle_pan_zoom(state_t *state)
     state->c_pan_start = mouse;
     state->c_pan_src_target = state->camera.target;
   }
-  
+
   if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
   {
     Vector2 delta = {
@@ -303,7 +303,7 @@ void __handle_pan_zoom(state_t *state)
     state->camera.target.x = state->c_pan_src_target.x + delta.x;
     state->camera.target.y = state->c_pan_src_target.y + delta.y;
   }
-  
+
   float scroll = GetMouseWheelMove();
   if (scroll != 0)
   {
@@ -356,7 +356,7 @@ void __draw_color_circle(Vector2 center, int ndx)
       DrawRing(center, r_inner, r_outer, angle, angle + step, 20, clr);
     }
   }
-  
+
   if (ndx >= 0 && ndx <= 255)
   {
     int ring = ndx < 16 ? 0 : (ndx >= 232 ? 7 : ((ndx - 16) / 36) + 1),
@@ -365,7 +365,7 @@ void __draw_color_circle(Vector2 center, int ndx)
     float r_inner = 24.0 + ring * COLPICK_WIDTH,
           r_outer = r_inner + COLPICK_WIDTH,
           step = 360.0 / (float)colors, angle = sector * step;
-    
+
     DrawRingLines(center, r_inner, r_outer, 0, 360, 90, WHITE);
     DrawRingLines(center, r_inner, r_outer, angle, angle + step, 32, WHITE);
   }
@@ -382,21 +382,21 @@ void __handle_colpick(state_t *state)
     state->colpick_open = true;
     state->colpick_time = GetTime();
   }
-  
+
   if ((IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)
         || (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && state->colpick_open))
       && (GetTime() - state->colpick_time) >= 0.3)
   {
     state->colpick_open = false;
   }
-  
+
   if (state->colpick_open)
   {
     Vector2 direction = { mouse.x - state->colpick_center.x,
       mouse.y - state->colpick_center.y };
     float distance = sqrtf(powf(direction.x, 2.0) + powf(direction.y, 2.0));
     float angle = atan2f(-direction.y, direction.x) * 180.0 / M_PI + 90.0;
-    
+
     if (distance >= 24.0 && distance <= (24.0 + 8.0 * COLPICK_WIDTH))
     {
       int ring = (distance - 24.0) / COLPICK_WIDTH,
@@ -405,7 +405,7 @@ void __handle_colpick(state_t *state)
           sector = (int)floorf((angle + 360.0) * n_colors / 360.0) % n_colors;
       state->selected_pix = start + sector;
     }
-    
+
     __draw_color_circle(state->colpick_center, state->selected_pix);
   }
 }

@@ -4,11 +4,12 @@ all: client server
 clean: clean-client clean-server
 
 client: src/Makefile.client
-	make -C src -f Makefile.client client.elf
-	cp src/client.elf ./
+	make -C src -f Makefile.client all
+	make -C src -f Makefile.client filename | grep -P '^> ' \
+		| awk '{print"src/"$$2}' | xargs cp -t .
 
 server: src/Makefile.server
-	make -C src -f Makefile.server server.elf
+	make -C src -f Makefile.server all
 	cp src/server.elf ./
 
 clean-client: src/Makefile.client
