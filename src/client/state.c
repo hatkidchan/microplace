@@ -210,7 +210,8 @@ void handle_state_mainloop(state_t *state)
           .y = worldpos.y,
           .val = state->selected_pix
         };
-        send_pk_c_set(state, pkt);
+        if (state->sock_connected)
+          send_pk_c_set(state, pkt);
         state->last_click = GetTime() + delta * 2.0;
       }
       state->last_click = GetTime();
@@ -228,6 +229,11 @@ void handle_state_mainloop(state_t *state)
 
     DrawFPS(8, 8);
     DrawText(TextFormat("n=%d", state->frame), 98, 8, 16, BLUE);
+    if (state->sock_dropped || !state->sock_connected)
+    {
+      state->state = CLST_RECONNECT_BEGIN;
+      state->sock_reconnect_attempts = 5;
+    }
   }
   EndDrawing();
   state->frame++;
@@ -267,17 +273,72 @@ void handle_state_connection_failed(state_t *state)
 
 void handle_state_reconnect_begin(state_t *state)
 {
-
+  if (state->sock_reconnect_attempts <= 0)
+  {
+    state->state = CLST_RECONNECT_FAILED;
+    return;
+  }
+  state->sock_reconnect_attempts--;
+  state->timer_started_frame = state->frame;
+  state->world.ready = false;
+  cnet_connect(state, state->server_address);
+  state->state = CLST_RECONNECT_WAIT;
 }
 
 void handle_state_reconnect_wait(state_t *state)
 {
+  BeginDrawing();
+  {
+    ClearBackground(BLACK);
+    __render_flickers(state);
+    const char *text = TextFormat("Reconnecting... (%d attempts left)",
+        state->sock_reconnect_attempts);
+    int tw = MeasureText(text, 32);
+    int x = (state->width - tw) / 2,
+        y = (state->height - 32) / 2;
+    DrawText(text, x, y, 32, GRAY);
+    y += 32;
 
+    int remaining_frames = state->frame - state->timer_started_frame;
+    float progress = (float)remaining_frames / 240.0;
+    if (progress >= 1.0)
+      DrawLine(x + tw * (progress - 1.), y, x + tw, y, GRAY);
+    else
+      DrawLine(x, y, x + tw * progress, y, GRAY);
+
+
+    if (state->frame >= state->timer_started_frame + 480)
+      state->state = CLST_RECONNECT_BEGIN;
+    else if (cnet_is_connected(state))
+      state->state = CLST_EXCHANGING;
+  }
+  EndDrawing();
+  state->frame++;
 }
 
 void handle_state_reconnect_failed(state_t *state)
 {
+  BeginDrawing();
+  {
+    ClearBackground(BLACK);
 
+    const char *text = "Reconnecting failed";
+    int tw = MeasureText(text, 32);
+    int x = (state->width - tw) / 2,
+        y = (state->height - 32) / 2;
+    DrawText(text, x, y, 32, RED); y += 48;
+
+    Rectangle rec = {
+      .x = (state->width - 400) / 2., .y = y,
+      .width = 400, .height = 40
+    };
+    if (GuiButton(rec, "Back to login screen"))
+    {
+      state->state = CLST_LOGIN_SCREEN;
+      state->world.ready = false;
+    }
+  }
+  EndDrawing();
 }
 
 void handle_state_kicked(state_t *state)

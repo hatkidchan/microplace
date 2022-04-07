@@ -18,7 +18,7 @@
 #endif
 
 void main_loop(void *fnd);
-int main(void)
+int main(int argc, char **argv)
 {
   state_t state = {
     .width = 640,
@@ -40,7 +40,8 @@ int main(void)
   memset(&state.chat, 0, sizeof(state.chat));
   memset(&state.world, 0, sizeof(state.world));
   strncpy(state.server_address, "ws://hatkidchan.is-a.dev:8092/ws", 256);
-//  strncpy(state.server_address, "ws://127.0.0.1:8092/ws", 256);
+  if (argc >= 2) strncpy(state.server_address, argv[1], 256);
+
 #ifdef PLATFORM_WEB
   emscripten_set_main_loop_arg(main_loop, &state, 0, 1);
 #else
