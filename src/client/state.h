@@ -56,6 +56,7 @@ typedef struct state_s {
   bool sock_connected;
   bool sock_dropped;
   int sock_reconnect_attempts;
+  float sock_next_reconnect;
 
   cli_message_handler on_message;
   cli_error_handler on_error;

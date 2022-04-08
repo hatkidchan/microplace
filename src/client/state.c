@@ -231,8 +231,15 @@ void handle_state_mainloop(state_t *state)
     DrawText(TextFormat("n=%d", state->frame), 98, 8, 16, BLUE);
     if (state->sock_dropped || !state->sock_connected)
     {
+      DrawText("OH FUCK", 8, 25, 32, RED);
       state->state = CLST_RECONNECT_BEGIN;
       state->sock_reconnect_attempts = 5;
+      state->world.ready = false;
+      if (state->canvas.id != 0)
+      {
+        UnloadRenderTexture(state->canvas);
+        state->canvas.id = 0;
+      }
     }
   }
   EndDrawing();
@@ -255,10 +262,12 @@ void handle_state_connection_failed(state_t *state)
     };
     if (GuiButton(rec, "Try again"))
     {
-      cnet_connect(state, state->server_address);
       state->timer_started_frame = state->frame;
       state->state = CLST_CONNECTING;
+      state->sock_dropped = false;
+      state->sock_connected = false;
       state->world.ready = false;
+      cnet_connect(state, state->server_address);
     }
     rec.y += rec.height + 20;
     if (GuiButton(rec, "Back to login screen"))
@@ -279,7 +288,7 @@ void handle_state_reconnect_begin(state_t *state)
     return;
   }
   state->sock_reconnect_attempts--;
-  state->timer_started_frame = state->frame;
+  state->sock_next_reconnect = GetTime() + 2.0;
   state->world.ready = false;
   cnet_connect(state, state->server_address);
   state->state = CLST_RECONNECT_WAIT;
@@ -299,15 +308,15 @@ void handle_state_reconnect_wait(state_t *state)
     DrawText(text, x, y, 32, GRAY);
     y += 32;
 
-    int remaining_frames = state->frame - state->timer_started_frame;
-    float progress = (float)remaining_frames / 240.0;
+    float remaining_time = state->sock_next_reconnect - GetTime();
+    float progress = sin(remaining_time * M_PI) + 1.0;
     if (progress >= 1.0)
       DrawLine(x + tw * (progress - 1.), y, x + tw, y, GRAY);
     else
       DrawLine(x, y, x + tw * progress, y, GRAY);
 
 
-    if (state->frame >= state->timer_started_frame + 480)
+    if (remaining_time <= 0.0)
       state->state = CLST_RECONNECT_BEGIN;
     else if (cnet_is_connected(state))
       state->state = CLST_EXCHANGING;

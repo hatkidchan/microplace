@@ -26,9 +26,12 @@ void on_message(void *fnd, void *data, size_t size)
         printf("pkt.ny: %d\n", state->world.ny = pkt.ny);
         state->world.width = pkt.cw * pkt.nx;
         state->world.height = pkt.ch * pkt.ny;
+        state->camera.target.x = (int)(state->world.width / 2);
+        state->camera.target.y = (int)(state->world.height / 2);
         strncpy(state->world.name, pkt.name, 128);
         strncpy(state->world.description, pkt.description, 256);
         state->world.ready = true;
+        memset(state->world.has_chunk, 0, 65536);
         state->canvas = LoadRenderTexture(state->world.width,\
             state->world.height);
         printf("done\n");

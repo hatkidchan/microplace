@@ -24,6 +24,9 @@ Color PALETTE_ANSI_VGA[16] = {
     { 255, 255, 255, 255 }
 };
 
+uint8_t COLOR256_BRIGHTNESS_LUT[6] = {
+  0x00, 0x66, 0x88, 0xbb, 0xdd, 0xff
+};
 
 Color Color256(uint8_t i)
 {
@@ -35,9 +38,9 @@ Color Color256(uint8_t i)
   }
   else
   {
-    i -= 16; c.b = (i % 6) * 42;
-    i /= 6; c.g = (i % 6) * 42;
-    i /= 6; c.r = (i % 6) * 42;
+    i -= 16;  c.b = COLOR256_BRIGHTNESS_LUT[i % 6];
+    i /= 6;   c.g = COLOR256_BRIGHTNESS_LUT[i % 6];
+    i /= 6;   c.r = COLOR256_BRIGHTNESS_LUT[i % 6];
   }
   return c;
 }
