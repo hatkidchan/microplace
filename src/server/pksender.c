@@ -1,4 +1,5 @@
 #include "pksender.h"
+#include "logging.h"
 #include "utils.h"
 #include <assert.h>
 
@@ -98,8 +99,10 @@ void send_pk_s_inf(client_t *c, pk_s_inf_t pkt)
 
 void send_pk_s_cdt(client_t *c, pk_s_cdt_t pkt)
 {
+  log_TRACE("Sending chunk (%d:%d) to %d", pkt.x, pkt.y, c->id);
   uint8_t buf[1 + sizeof(pk_s_cdt_t) - sizeof(void *) + MAX_CDT_PKT_LENGTH];
   size_t sz = make_pk_s_cdt(c, pkt, buf, sizeof(buf));
+  loghex_TRACE(buf, sz);
   mg_ws_send(c->mgconn, (const char *)buf, sz, WEBSOCKET_OP_BINARY);
 }
 
@@ -210,6 +213,9 @@ void send_s_bcast_msg(client_t *head, uint8_t rgb[3], const char *message)
   strcpy(msg.data, message);
   uint8_t packet[1 + sizeof(pk_s_msg_t)] = { 0 };
   size_t sz = make_pk_s_msg(head, msg, packet, 1 + sizeof(pk_s_msg_t));
+  log_TRACE("Broadcasting message:");
+  log_TRACE("type=%zd, rgb=(%d, %d, %d)", msg.type, msg.r, msg.g, msg.b);
+  loghex_TRACE(packet, sz);
   send_s_bcast(head, packet, sz);
 }
 
@@ -224,5 +230,11 @@ void send_s_bcast_cnt(client_t *head)
   };
   uint8_t packet[1 + sizeof(pk_s_cnt_t)] = { 0 };
   size_t sz = make_pk_s_cnt(head, pkt, packet, 1 + sizeof(pk_s_cnt_t));
+  log_TRACE("Broadcasting counters:");
+  log_TRACE("changes=%zd", pkt.n_changes);
+  log_TRACE("connections=%zd", pkt.n_connections);
+  log_TRACE("messages=%zd", pkt.n_messages);
+  log_TRACE("online=%zd", pkt.online);
+  loghex_TRACE(packet, sz);
   send_s_bcast(head, packet, sz);
 }

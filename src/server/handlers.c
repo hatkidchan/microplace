@@ -1,14 +1,18 @@
 #include "../packets.h"
+#include "logging.h"
 #include "handlers.h"
 #include "pksender.h"
 #include "utils.h"
 #include "options.h"
+#include "logging.h"
 #include <assert.h>
 
 #define _CHECK_PK_SIZE(client, recved, expected) \
 { \
   if (recved < expected) \
   { \
+    log_ERROR("Client %d sent incomplete packet: %d/%d", \
+        client->id, recved, expected);\
     send_s_message(client, (uint8_t[3]){ 255, 0, 0 }, \
         "Incomplete packet");\
     return; \
@@ -58,7 +62,7 @@ void __sh_remove_client(server_t *server, client_t *client)
   }
 
   mg_ws_send(client->mgconn, "", 0, WEBSOCKET_OP_CLOSE);
-  printf("DISCONNECT %s\n", cur->address);
+  log_INFO("Disconnected %s (%d)", cur->address, cur->id);
   free(cur);
   server->n_clients--;
 }
@@ -67,7 +71,7 @@ void handle_mongoose(struct mg_connection *c, int et, void *edt, void *fdt)
 {
   server_t *server = (server_t *)fdt;
   if (et != MG_EV_POLL)
-    printf("MG_EVENT: %d (%s)\n", et, mg_ev_str(et));
+    log_DEBUG("MG_EVENT: %d (%s)", et, mg_ev_str(et));
   switch (et)
   {
     case MG_EV_HTTP_MSG:
@@ -106,12 +110,14 @@ void ws_on_open(server_t *srv, struct mg_connection *conn)
   client->server = srv;
   memset(client->username, 0, 128);
   mg_straddr(&conn->rem, client->address, 256);
+  log_INFO("Connected %s (%d)", client->address, client->id);
+
   client->next = srv->clients_head;
   srv->clients_head = client;
   srv->n_clients++;
-  
+
   send_s_info(client);
-  
+
   char tmp[256] = { 0 };
   snprintf(tmp, 256, "-!-=*=*=*=*=-!-");
   send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
@@ -128,7 +134,7 @@ void ws_on_open(server_t *srv, struct mg_connection *conn)
   snprintf(tmp, 256, "-!-=*=*=*=*=-!-");
   send_s_message(client, (uint8_t[3]){ 0, 255, 0 }, tmp);
   client->can_write = true;
-  
+
   snprintf(client->username, 128, "nyanner#%zd@%p", client->id, client);
 
   srv->world->info->n_connections++;
@@ -151,22 +157,28 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
         pk_c_set_t pkt = *(pk_c_set_t*)in_pkt;
         if (!cli->can_write)
         {
+          log_WARN("Client %d tried to place pixels w/o permission", cli->id);
           send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
               "You cannot place pixels.");
           return;
         }
-        if (!world_set(cli->world, pkt.x, pkt.y, pkt.val))
-        {
-          send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
-              "You cannot place pixels here");
-          return;
-        }
-        
+
         uint64_t now = now_ms();
         if (now - cli->last_placed_pixel_ts <= UP_COOLDOWN_MS)
         {
+          log_WARN("Client %d placing faster than limit (%d < %d)",
+              cli->id, now - cli->last_placed_pixel_ts, UP_COOLDOWN_MS);
           send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
               "WOAH WOAH SLOW DOWN BITCH COOLDOWN IS A THING YNOW THAT RIGHT?");
+          return;
+        }
+
+        if (!world_set(cli->world, pkt.x, pkt.y, pkt.val))
+        {
+          log_WARN("Client %d tried to place pixels out of bounds (%d:%d %02x)",
+              cli->id, pkt.x, pkt.y, pkt.val);
+          send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
+              "You cannot place pixels here");
           return;
         }
 
@@ -180,13 +192,15 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
         srv->world->info->n_changes++;
       }
       break;
-      
+
     case PK_C_MSG:
       {
         _CHECK_PK_SIZE(cli, sz, 1 + sizeof(pk_c_msg_t));
         pk_c_msg_t msg = *(pk_c_msg_t *)in_pkt;
         if (cli->username[0] == 0)
         {
+          log_WARN("Client %d tried to send message %s",
+              cli->id, msg.text);
           send_s_message(cli, (uint8_t[3]){ 255, 0, 0 },
               "You cannot send messages");
           return;
@@ -214,6 +228,7 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
 
     case PK_C_DIS:
       {
+        log_INFO("Client %d requested disconnect", cli->id);
         send_s_kick(cli, "Disconnected");
       }
       break;
@@ -233,9 +248,12 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
     case PK_S_PIX:
     case PK_S_MSG:
     case PK_S_SYS:
+      log_ERROR("Client %d sent client-side packet 0x%02x, dropping&kicking",
+          cli->id, pkt_type);
       send_s_kick(cli, "Invalid packet type");
       break;
     default:
+      log_ERROR("Client %d sent unknown packet 0x%02x", cli->id, pkt_type);
       send_s_kick(cli, "Invalid packet type.");
       break;
   }
@@ -243,6 +261,7 @@ void ws_on_msg(server_t *srv, client_t *cli, void *pkt, size_t sz)
 
 void ws_on_close(server_t *srv, struct mg_connection *conn)
 {
+  log_INFO("Client %d disconnected without any message :(", conn->id);
   client_t *client = __sh_find_client(srv, conn->id);
   if (client != NULL)
   {

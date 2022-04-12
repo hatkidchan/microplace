@@ -1,10 +1,12 @@
-CFLAGS := -Wall -Wextra -fshort-enums
+CFLAGS := -Wall -Wextra
+CFLAGS += -fshort-enums
 OBJFILES := ../obj/server/handlers.o \
 			../obj/server/pksender.o \
 			../obj/server/world.o \
 			../obj/server/utils.o \
 			../obj/server/filesystem.o \
-			../obj/server/mongoose.o
+			../obj/server/mongoose.o \
+			../obj/server/logging.o
 INCLUDES := "-I../mongoose/"
 
 PACKED_FILES := 

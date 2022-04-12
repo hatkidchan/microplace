@@ -1,4 +1,5 @@
 #include "world.h"
+#include "logging.h"
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -14,17 +15,21 @@ world_t *world_open(const char *fpath)
   int fd = open(fpath, O_RDWR | O_CREAT, 0664);
   if (fd < 0)
   {
+    int errcode = errno;
+    log_ERROR("Failed to open world: %s", strerror(errcode));
+    errno = errcode;
     return NULL;
   }
 
   world_t *world = calloc(1, sizeof(world_t));
   world->_fd = fd;
-  
+
   worldinfo_t info;
   ssize_t n_read = read(fd, &info, sizeof(worldinfo_t));
   if (n_read < 0)
   {
     int errcode = errno;
+    log_ERROR("Failed to read world info: %s", strerror(errcode));
     free(world);
     close(fd);
     errno = errcode;
@@ -32,14 +37,19 @@ world_t *world_open(const char *fpath)
   }
   else if (n_read == sizeof(worldinfo_t))
   {
+    log_TRACE("World info (hex):");
+    loghex_TRACE(&info, sizeof(worldinfo_t));
     world->ready = true;
     world->width = info.chunk_width * info.chunks_x;
     world->height = info.chunk_height * info.chunks_y;
     size_t length = sizeof(worldinfo_t) + world->width * world->height;
+    log_TRACE("mmap(addr=%p, len=%zd, prot=%d, flags=%d, fildes=%d, off=0)",
+        NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     world->_data = mmap(0, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (world->_data == MAP_FAILED)
     {
       int errcode = errno;
+      log_ERROR("Failed to mmap() world data: %s", strerror(errcode));
       close(fd);
       free(world);
       errno = errcode;
@@ -49,12 +59,16 @@ world_t *world_open(const char *fpath)
     world->data = ((uint8_t *)world->_data) + sizeof(worldinfo_t);
     return world;
   }
+  log_ERROR("Incomplete world info");
   world->ready = false;
   return world;
 }
 
 bool world_init(world_t *world, worldinfo_t opts, worldgen_fn_t wgen)
 {
+  log_INFO("Initializing world %s", opts.name);
+  log_DEBUG("World size: (%dx%d chunks %dx%d each)",
+      opts.chunks_x, opts.chunks_y, opts.chunk_width, opts.chunk_height);
   int fd = world->_fd;
   lseek(fd, 0, SEEK_SET);
   write(fd, &opts, sizeof(worldinfo_t));
@@ -63,6 +77,7 @@ bool world_init(world_t *world, worldinfo_t opts, worldgen_fn_t wgen)
   world->height = opts.chunk_height * opts.chunks_y;
   for (int y = 0; y < world->height; y++)
   {
+    log_TRACE("Initializing line %d/%d", y, world->height);
     for (int x = 0; x < world->width; x++)
     {
       stripe[x] = wgen(x, y);
@@ -71,15 +86,20 @@ bool world_init(world_t *world, worldinfo_t opts, worldgen_fn_t wgen)
   }
   lseek(fd, 0, SEEK_SET);
   size_t length = sizeof(worldinfo_t) + world->width * world->height;
+  log_TRACE("mmap(addr=%p, len=%zd, prot=%d, flags=%d, fildes=%d, off=0)",
+      NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   world->_data = mmap(0, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (world->_data == MAP_FAILED)
   {
+    int errcode = errno;
+    log_ERROR("Failed to mmap() world data: %s", strerror(errcode));
+    errno = errcode;
     return false;
   }
-  
+
   world->info = (worldinfo_t *)world->_data;
   world->data = ((uint8_t *)world->_data) + sizeof(worldinfo_t);
-  
+
   world->ready = true;
   return true;
 }
@@ -106,10 +126,10 @@ bool world_crop_chunk(world_t *world, int cx, int cy, uint8_t *dst)
       || cx >= world->info->chunks_x
       || cy >= world->info->chunks_y)
     return false;
-  
+
   worldinfo_t info = *world->info;
   int w = info.chunk_width, h = info.chunk_height, x = cx * w, y = cy * h;
-  
+
   for (int oy = 0; oy < h; oy++)
   {
     uint8_t *src = &world->data[(y + oy) * world->width + x];

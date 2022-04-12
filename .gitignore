@@ -1,10 +1,13 @@
-obj/*.o
+obj/client/*.[coh]
+obj/server/*.[coh]
 obj/raygui.c
 src/filesystem.c
 pack
-server
-client
-client.*
+client.elf*
+client.exe*
+client.wasm*
+client.js*
+client.html*
 world.*
 *.data
 *.bin
